@@ -1,15 +1,111 @@
+import net.andreinc.mockneat.MockNeat;
+import net.andreinc.mockneat.unit.objects.Probabilities;
+
 import java.io.File;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class Main {
 
     public static void main(String[] args) {
         List<String> strings = readFromFile("src/main/resources/Data.txt");
+        int wordSize = strings.get(0).length();
+        System.out.println(wordSize);
+        int size = strings.size();
 
+        int[][] costMatrix = getCostMatrix(strings);
+        float[][] feromonMatrix = startFillFeromonArray(size);
+        float[][] probabilityMatrix = startFillPrawdopodobienstwo(costMatrix, feromonMatrix, size);
+
+        for(int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                System.out.print(costMatrix[i][j] + "   ");
+            }
+            System.out.println();
+        }
+
+
+
+        //for(ilosc mrowek)
+            //dodawanie do ogolnej historii mrowek
+        List<Integer> mrufka = mrufka(costMatrix, feromonMatrix, 0, wordSize);
+        System.out.println(mrufka);
+        //znajdowanie najdluzszej historii
     }
+
+    private static List<Integer> mrufka(int[][] koszt, float[][] feromon, int actualVertex, int dlugoscSlowa){
+        int size = feromon.length;
+
+        boolean[] visited = new boolean[size];
+        Arrays.fill(visited, false);
+
+
+        List<Integer> historia = new ArrayList<>();
+
+        int aktualnaDlugoscSekwencji = dlugoscSlowa;
+
+        int koncowaDlugoscSekwencji = 30;
+
+
+        for(int i = 0; i < size; i++){
+            if(koszt[actualVertex][i] == -1 || koszt[actualVertex][i] == 0){
+                visited[i] = true;
+            }
+        }
+
+        while(true){
+            visited[actualVertex] = true;
+            historia.add(actualVertex);
+
+            boolean flag = true;
+            for(Boolean visit : visited){
+                if(!visit)
+                    flag = false;
+            }
+            if(flag)
+                return historia;
+
+            int nextVertex = generateNextVertex(actualVertex, feromon, koszt, visited);
+            System.out.println("NEXT: " + nextVertex);
+            if(aktualnaDlugoscSekwencji + koszt[actualVertex][nextVertex] < koncowaDlugoscSekwencji) {
+                aktualnaDlugoscSekwencji += koszt[actualVertex][nextVertex];
+                actualVertex = nextVertex;
+
+            }else{
+                break;
+            }
+        }
+        return historia;
+    }
+
+    private static int generateNextVertex(int actualVertex, float[][] feromon, int[][] costs, boolean[] visited) {
+        double ALPHA = 1d;
+        double BETA = 1d;
+
+        double randomNumber = Math.random();
+        double mianownik = 0d;
+        double probability = 0d;
+
+        int size = feromon.length;
+
+        for(int i = 0; i < size; i++){
+            if(!visited[i] && costs[actualVertex][i] != -1 && costs[actualVertex][i] != 0)
+                mianownik += Math.pow(feromon[actualVertex][i], ALPHA) * Math.pow(1/costs[actualVertex][i], BETA);
+        }
+
+        for(int i = 0; i < size; i++){
+            if(!visited[i] && costs[actualVertex][i] != -1 && costs[actualVertex][i] != 0)
+                probability += Math.pow(feromon[actualVertex][i], ALPHA) * Math.pow(1/costs[actualVertex][i], BETA);
+                if(probability/mianownik >= randomNumber){
+                    return i;
+                }
+        }
+        return 0;
+    }
+
 
     /**
      * Function which iterate in words matrix and create natrix of costs using "getCosts" function
