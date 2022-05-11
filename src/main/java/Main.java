@@ -31,7 +31,7 @@ public class Main {
 
         //for(ilosc mrowek)
             //dodawanie do ogolnej historii mrowek
-        List<Integer> mrufka = mrufka(costMatrix, feromonMatrix, 0, wordSize);
+        List<Integer> mrufka = mrufka(costMatrix, feromonMatrix, 3, wordSize);
         System.out.println(mrufka);
         //znajdowanie najdluzszej historii
     }
@@ -69,14 +69,24 @@ public class Main {
                 return historia;
 
             int nextVertex = generateNextVertex(actualVertex, feromon, koszt, visited);
-            System.out.println("NEXT: " + nextVertex);
+            if (nextVertex == 0) {
+                for (int i = 0; i < visited.length; i++) {
+                    if (!visited[i]) {
+                        nextVertex = i;
+                        break;
+                    }
+                }
+            }
+
+            System.out.println(historia);
+
             if(aktualnaDlugoscSekwencji + koszt[actualVertex][nextVertex] < koncowaDlugoscSekwencji) {
                 aktualnaDlugoscSekwencji += koszt[actualVertex][nextVertex];
                 actualVertex = nextVertex;
-
             }else{
                 break;
             }
+
         }
         return historia;
     }
@@ -92,16 +102,21 @@ public class Main {
         int size = feromon.length;
 
         for(int i = 0; i < size; i++){
-            if(!visited[i] && costs[actualVertex][i] != -1 && costs[actualVertex][i] != 0)
+            if(!visited[i])
                 mianownik += Math.pow(feromon[actualVertex][i], ALPHA) * Math.pow(1/costs[actualVertex][i], BETA);
         }
 
+        if(mianownik == 0.0)
+            mianownik=1;
+
         for(int i = 0; i < size; i++){
-            if(!visited[i] && costs[actualVertex][i] != -1 && costs[actualVertex][i] != 0)
-                probability += Math.pow(feromon[actualVertex][i], ALPHA) * Math.pow(1/costs[actualVertex][i], BETA);
-                if(probability/mianownik >= randomNumber){
+            if(!visited[i]) {
+                probability += Math.pow(feromon[actualVertex][i], ALPHA) * Math.pow(1 / costs[actualVertex][i], BETA);
+                if (probability / mianownik >= randomNumber) {
+                    System.out.println(i);
                     return i;
                 }
+            }
         }
         return 0;
     }
