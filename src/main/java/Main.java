@@ -7,7 +7,7 @@ import java.util.Scanner;
 public class Main {
 
     public static void main(String[] args) {
-        List<String> strings = readFromFile("/Users/kacperszaur/Desktop/DNA/src/main/java/data.txt");
+        List<String> strings = readFromFile("src/main/resources/Data.txt");
 
     }
 
