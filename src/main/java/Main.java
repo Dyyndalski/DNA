@@ -2,10 +2,7 @@ import net.andreinc.mockneat.MockNeat;
 import net.andreinc.mockneat.unit.objects.Probabilities;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -13,27 +10,68 @@ public class Main {
     public static void main(String[] args) {
         List<String> strings = readFromFile("src/main/resources/Data.txt");
         int wordSize = strings.get(0).length();
-        System.out.println(wordSize);
+
         int size = strings.size();
 
         int[][] costMatrix = getCostMatrix(strings);
         float[][] feromonMatrix = startFillFeromonArray(size);
         float[][] probabilityMatrix = startFillPrawdopodobienstwo(costMatrix, feromonMatrix, size);
 
-        for(int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                System.out.print(costMatrix[i][j] + "   ");
+//        for(int i = 0; i < size; i++) {
+//            for (int j = 0; j < size; j++) {
+//                System.out.print(costMatrix[i][j] + "   ");
+//            }
+//            System.out.println();
+//        }
+
+        List<List<Integer>> history = new ArrayList<List<Integer>>();
+        Random random = new Random();
+
+
+        for (int i = 0; i < 10; i++) {
+            int randomStartVertex = random.nextInt(size);
+            List<Integer> mrufka = mrufka(costMatrix, feromonMatrix, randomStartVertex, wordSize);
+            history.add(mrufka);
+
+            for (int a = 0; a < mrufka.size()-1; a++) {
+                System.out.println(strings.get(randomStartVertex));
+                int przesuniecie = costMatrix[randomStartVertex][mrufka.get(a + 1)];
+                for (int v = 0; v < przesuniecie; v++) {
+                    System.out.print(" ");
+                }
+                System.out.println(strings.get(a + 1));
+                //System.out.println();
             }
-            System.out.println();
+
+
         }
+    }
 
 
 
-        //for(ilosc mrowek)
-            //dodawanie do ogolnej historii mrowek
-        List<Integer> mrufka = mrufka(costMatrix, feromonMatrix, 3, wordSize);
-        System.out.println(mrufka);
+
+//            int max = 0;
+//            int index = 0;
+//            for(int z = 0; z < 100; z++) {
+//                    if(history.get(z).size() > max){
+//                        max = history.get(z).size();
+//                        index = z;
+//                }
+//            }
+//            System.out.println(history.get(index));
+//            updateFeromon(history, feromonMatrix, costMatrix);
+//        }
+
         //znajdowanie najdluzszej historii
+
+
+    private static void updateFeromon(List<List<Integer>> history, float[][] feromon, int[][] costMatrix) {
+
+        for(List <Integer> historia : history){
+            for(int j = 0; j < historia.size()-1; j++){
+                feromon[historia.get(j)][historia.get(j + 1)] *= 1 + (0.1 / costMatrix[historia.get(j)][historia.get(j + 1)]);
+            }
+        }
     }
 
     private static List<Integer> mrufka(int[][] koszt, float[][] feromon, int actualVertex, int dlugoscSlowa){
@@ -47,18 +85,20 @@ public class Main {
 
         int aktualnaDlugoscSekwencji = dlugoscSlowa;
 
-        int koncowaDlugoscSekwencji = 30;
+        int koncowaDlugoscSekwencji = 200;
 
 
-        for(int i = 0; i < size; i++){
-            if(koszt[actualVertex][i] == -1 || koszt[actualVertex][i] == 0){
-                visited[i] = true;
-            }
-        }
+
 
         while(true){
             visited[actualVertex] = true;
             historia.add(actualVertex);
+
+            for(int i = 0; i < size; i++){
+                if(koszt[actualVertex][i] == -1 || koszt[actualVertex][i] == 0){
+                    visited[i] = true;
+                }
+            }
 
             boolean flag = true;
             for(Boolean visit : visited){
@@ -69,7 +109,10 @@ public class Main {
                 return historia;
 
             int nextVertex = generateNextVertex(actualVertex, feromon, koszt, visited);
-            if (nextVertex == 0) {
+
+
+            //TODO
+            if (nextVertex == -1) {
                 for (int i = 0; i < visited.length; i++) {
                     if (!visited[i]) {
                         nextVertex = i;
@@ -77,8 +120,6 @@ public class Main {
                     }
                 }
             }
-
-            System.out.println(historia);
 
             if(aktualnaDlugoscSekwencji + koszt[actualVertex][nextVertex] < koncowaDlugoscSekwencji) {
                 aktualnaDlugoscSekwencji += koszt[actualVertex][nextVertex];
@@ -102,23 +143,20 @@ public class Main {
         int size = feromon.length;
 
         for(int i = 0; i < size; i++){
-            if(!visited[i])
-                mianownik += Math.pow(feromon[actualVertex][i], ALPHA) * Math.pow(1/costs[actualVertex][i], BETA);
+            if(!visited[i]) {
+                mianownik += Math.pow(feromon[actualVertex][i], ALPHA) * Math.pow(1.0d / costs[actualVertex][i], BETA);
+            }
         }
-
-        if(mianownik == 0.0)
-            mianownik=1;
 
         for(int i = 0; i < size; i++){
             if(!visited[i]) {
-                probability += Math.pow(feromon[actualVertex][i], ALPHA) * Math.pow(1 / costs[actualVertex][i], BETA);
+                probability += Math.pow(feromon[actualVertex][i], ALPHA) * Math.pow(1.0d / costs[actualVertex][i], BETA);
                 if (probability / mianownik >= randomNumber) {
-                    System.out.println(i);
                     return i;
                 }
             }
         }
-        return 0;
+        return -1;
     }
 
 
@@ -128,7 +166,7 @@ public class Main {
      * @return matrix of cost
      */
     private static int[][] getCostMatrix(List<String> words){
-        int matrix[][] = new int[200][200];
+        int matrix[][] = new int[400][400];
 
         for(int i = 0; i < words.size(); i++){
             for(int j = 0; j < words.size(); j++){
