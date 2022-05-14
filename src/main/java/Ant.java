@@ -1,16 +1,18 @@
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Comparator;
 import java.util.List;
 
+
 @NoArgsConstructor
-@AllArgsConstructor
 @Data
 public class Ant {
     private List<Integer> history;
     private Integer length;
+    private Integer size;
 
     public void addToHistory(Integer vertex){
         this.history.add(vertex);

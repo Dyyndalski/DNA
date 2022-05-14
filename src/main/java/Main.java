@@ -3,44 +3,55 @@ import java.util.*;
 
 public class Main {
 
-    final static int LENGTH_OF_SEQ = 500;
-    final static double ALPHA = 1.0d;
+    final static double LENGTH_OF_SEQ = 209;
+    final static double WORD_LENGTH = 10;
+    final static double WORDS_NUMBER = LENGTH_OF_SEQ - WORD_LENGTH + 1;
+    final static double ALPHA = 2.0d;
     final static double BETA = 1.0d;
 
     public static void main(String[] args) {
-        List<String> strings = readFromFile("src/main/resources/Data.txt");
-        int wordSize = strings.get(0).length();
-        int size = strings.size();
-        int[][] costMatrix = getCostMatrix(strings);
-        double[][] feromonMatrix = startFillFeromonArray(size);
 
-        List<Ant> ants = new ArrayList<>();
-        Random random = new Random();
+        List<String> pliki = Arrays.asList("data1.txt");
 
-        for (int z = 0; z < 100; z++) {
-            for (int i = 0; i < 10; i++) {
-                int randomStartVertex = random.nextInt(size);
-                Ant mrufka = mrufka(costMatrix, feromonMatrix, randomStartVertex, wordSize);
 
-                ants.add(mrufka);
+        for(String plik : pliki) {
 
-                //FUNCTION TO DRAW SEQUNCES ONE UNDER ANOTHER
-                drawWords(mrufka.getHistory(), costMatrix, strings);
+            List<String> strings = readFromFile("src/main/resources/" + plik);
+            int wordSize = strings.get(0).length();
+            int size = strings.size();
+            int[][] costMatrix = getCostMatrix(strings);
+            double[][] feromonMatrix = startFillFeromonArray(size);
+
+            List<Ant> ants = new ArrayList<>();
+            Random random = new Random();
+
+            Ant maxAnt = new Ant();
+            maxAnt.setSize(0);
+
+            for (int x = 0; x < 10000; x++) {
+                for (int i = 0; i < 10; i++) {
+                    int randomStartVertex = random.nextInt(size);
+                    Ant mrufka = mrufka(costMatrix, feromonMatrix, randomStartVertex, wordSize);
+
+                    ants.add(mrufka);
+                }
+
+                List<Ant> sortedAntsByLength = countRanking(ants);
+
+                Ant ant = sortedAntsByLength.stream().max(Comparator.comparingInt(Ant::getSize)).get();
+
+                if (ant.getSize() > maxAnt.getSize()) {
+                    maxAnt.setSize(ant.getSize());
+                    maxAnt.setHistory(ant.getHistory());
+                    maxAnt.setLength(ant.getLength());
+
+                }
+
+                updateFeromon(sortedAntsByLength, feromonMatrix, costMatrix);
+                ants.clear();
             }
-
-            //FUNCTION TO CREATE RANKING OF ANTS - FIRST PLACE HAVE ANT WHICH HAVE THE LONGEST LETTER IN SEQUENCE
-            //usunac komentarz zeby zobaczyc co i jak (nizej)
-            List<Ant> sortedAntsByLength = countRanking(ants);
-//        sortedAntsByLength.stream().forEach(ant -> {
-//            System.out.println(ant);
-//        });
-
-            //TODO - UPDATE FEROMONU
-            //updateFeromon(history, feromonMatrix, costMatrix);
-
-
-            //TODO - CZYSZCZENIE LISTY MRÓWEK KIEDY PRZEJĄ GRAF
-            ants.clear();
+            System.out.println("Najlepsza mrufka: " + maxAnt);
+            drawWords(maxAnt.getHistory(), costMatrix, strings);
         }
     }
 
@@ -50,30 +61,17 @@ public class Main {
         return ants;
     }
 
-    private static void drawWords(List<Integer> mrufka, int[][] costMatrix, List<String> strings) {
+    private static void updateFeromon(List<Ant> ants, double[][] feromon, int[][] costMatrix) {
 
-        int counter = 0;
-        int numberOfSkip = 0;
-
-        System.out.println(strings.get(mrufka.get(0)));
-        for (int a = 1; a < mrufka.size(); a++) {
-
-            numberOfSkip = costMatrix[mrufka.get(a - 1)][mrufka.get(a)];
-            counter += numberOfSkip;
-
-            for (int v = 0; v < counter; v++) {
-                System.out.print(" ");
+        for(int i = 0; i < feromon.length; i++){
+            for(int j = 0; j < feromon.length; j++){
+                feromon[i][j] *= 0.5;
             }
-            System.out.println(strings.get(mrufka.get(a)));
         }
-    }
 
-
-    private static void updateFeromon(List<List<Integer>> history, double[][] feromon, int[][] costMatrix) {
-
-        for (List<Integer> historia : history) {
-            for (int j = 0; j < historia.size() - 1; j++) {
-                feromon[historia.get(j)][historia.get(j + 1)] *= 1 + (0.1 / costMatrix[historia.get(j)][historia.get(j + 1)]);
+        for(Ant ant : ants){
+            for(int i = 0; i < ant.getSize()-1; i++){
+                feromon[ant.getHistory().get(i)][ant.getHistory().get(i+1)] *= 1.0 + (ant.getSize() / WORDS_NUMBER);
             }
         }
     }
@@ -88,10 +86,12 @@ public class Main {
         ant.setHistory(new ArrayList<>());
         ant.setLength(dlugoscSlowa);
 
-        while (true) {
+        while(true) {
+            //Arrays.fill(visited, false);
             visited[actualVertex] = true;
 
             ant.addToHistory(actualVertex);
+            ant.setSize(ant.getHistory().size());
 
             for (int i = 0; i < size; i++) {
                 if (koszt[actualVertex][i] == -1 || koszt[actualVertex][i] == 0) {
@@ -107,27 +107,24 @@ public class Main {
             if (flag) {
                 return ant;
             }
-
             int nextVertex = generateNextVertex(actualVertex, feromon, koszt, visited);
 
 
-            //TODO - CHYBA DO WYJEBANIA
-//            if (nextVertex == -1) {
-//                for (int i = 0; i < visited.length; i++) {
-//                    if (!visited[i]) {
-//                        nextVertex = i;
-//                        break;
-//                    }
-//                }
-//            }
+            if (nextVertex == -1) {
+                for (int i = 0; i < visited.length; i++) {
+                    if (!visited[i]) {
+                        nextVertex = i;
+                        break;
+                    }
+                }
+            }
 
-            if (ant.getLength() + koszt[actualVertex][nextVertex] < LENGTH_OF_SEQ) {
+            if (ant.getLength() + koszt[actualVertex][nextVertex] <= LENGTH_OF_SEQ) {
                 ant.updateLength(koszt[actualVertex][nextVertex]);
                 actualVertex = nextVertex;
             } else {
                 break;
             }
-
         }
         return ant;
     }
@@ -164,7 +161,7 @@ public class Main {
      * @return matrix of cost
      */
     private static int[][] getCostMatrix(List<String> words) {
-        int matrix[][] = new int[400][400];
+        int matrix[][] = new int[800][800];
 
         for (int i = 0; i < words.size(); i++) {
             for (int j = 0; j < words.size(); j++) {
@@ -236,5 +233,23 @@ public class Main {
         }
 
         return result;
+    }
+
+    private static void drawWords(List<Integer> mrufka, int[][] costMatrix, List<String> strings) {
+
+        int counter = 0;
+        int numberOfSkip = 0;
+
+        System.out.println(strings.get(mrufka.get(0)));
+        for (int a = 1; a < mrufka.size(); a++) {
+
+            numberOfSkip = costMatrix[mrufka.get(a - 1)][mrufka.get(a)];
+            counter += numberOfSkip;
+
+            for (int v = 0; v < counter; v++) {
+                System.out.print(" ");
+            }
+            System.out.println(strings.get(mrufka.get(a)));
+        }
     }
 }
