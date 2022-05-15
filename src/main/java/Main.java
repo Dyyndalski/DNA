@@ -6,17 +6,12 @@ public class Main {
     final static double LENGTH_OF_SEQ = 209;
     final static double WORD_LENGTH = 10;
     final static double WORDS_NUMBER = LENGTH_OF_SEQ - WORD_LENGTH + 1;
-    final static double ALPHA = 2.0d;
+    final static double ALPHA = 1.0d;
     final static double BETA = 1.0d;
 
     public static void main(String[] args) {
 
-        List<String> pliki = Arrays.asList("data1.txt");
-
-
-        for(String plik : pliki) {
-
-            List<String> strings = readFromFile("src/main/resources/" + plik);
+            List<String> strings = readFromFile("src/main/resources/data2.txt");
             int wordSize = strings.get(0).length();
             int size = strings.size();
             int[][] costMatrix = getCostMatrix(strings);
@@ -28,8 +23,8 @@ public class Main {
             Ant maxAnt = new Ant();
             maxAnt.setSize(0);
 
-            for (int x = 0; x < 10000; x++) {
-                for (int i = 0; i < 10; i++) {
+            for (int x = 0; x < 3; x++) {
+                for (int i = 0; i < 20; i++) {
                     int randomStartVertex = random.nextInt(size);
                     Ant mrufka = mrufka(costMatrix, feromonMatrix, randomStartVertex, wordSize);
 
@@ -38,13 +33,12 @@ public class Main {
 
                 List<Ant> sortedAntsByLength = countRanking(ants);
 
-                Ant ant = sortedAntsByLength.stream().max(Comparator.comparingInt(Ant::getSize)).get();
+                Ant ant = sortedAntsByLength.get(0);
 
                 if (ant.getSize() > maxAnt.getSize()) {
                     maxAnt.setSize(ant.getSize());
                     maxAnt.setHistory(ant.getHistory());
                     maxAnt.setLength(ant.getLength());
-
                 }
 
                 updateFeromon(sortedAntsByLength, feromonMatrix, costMatrix);
@@ -52,8 +46,9 @@ public class Main {
             }
             System.out.println("Najlepsza mrufka: " + maxAnt);
             drawWords(maxAnt.getHistory(), costMatrix, strings);
+
         }
-    }
+
 
     private static List<Ant> countRanking(List<Ant> ants) {
         Collections.sort(ants, new SortByLength());
@@ -87,7 +82,6 @@ public class Main {
         ant.setLength(dlugoscSlowa);
 
         while(true) {
-            //Arrays.fill(visited, false);
             visited[actualVertex] = true;
 
             ant.addToHistory(actualVertex);
@@ -208,7 +202,8 @@ public class Main {
             }
             counter++;
         }
-        return costs == 10 ? -1 : costs;
+        return costs >= 10 ? 10 : costs;
+        //return costs;
     }
 
     /**
