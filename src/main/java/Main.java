@@ -1,17 +1,36 @@
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 public class Main {
 
-    final static double LENGTH_OF_SEQ = 209;
-    final static double WORD_LENGTH = 10;
-    final static double WORDS_NUMBER = LENGTH_OF_SEQ - WORD_LENGTH + 1;
-    final static double ALPHA = 1.0d;
-    final static double BETA = 1.0d;
+    static double ALPHA = 1.0d;
+    static double BETA = 1.0d;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
-            List<String> strings = readFromFile("src/main/resources/data2.txt");
+        //File folder = new File("src/main/resources/1-negatywne-losowe");
+        //File folder = new File("src/main/resources/2-negatywne-powtorzenia");
+        File folder = new File("src/main/resources/3-poztywne-losowe");
+        //File folder = new File("src/main/resources/4-pozytywne-przeklamania");
+
+
+        List<File> files = Arrays.asList(folder.listFiles());
+        for(File file : files) {
+            System.out.println(file.getName());
+            String fileName = file.getName().toString();
+
+            String[] split = fileName.split("\\.");
+            String[] split1 = split[1].split("\\-|\\+");
+
+
+            int LENGTH_OF_SEQ = Integer.valueOf(split1[0]) + 9;
+            int WORD_LENGTH = 10;
+            int WORDS_NUMBER = LENGTH_OF_SEQ - WORD_LENGTH + 1;
+
+            List<String> strings = readFromFile(file);
             int wordSize = strings.get(0).length();
             int size = strings.size();
             int[][] costMatrix = getCostMatrix(strings);
@@ -23,10 +42,12 @@ public class Main {
             Ant maxAnt = new Ant();
             maxAnt.setSize(0);
 
+            long startTime = System.currentTimeMillis();
+
             for (int x = 0; x < 3; x++) {
                 for (int i = 0; i < 20; i++) {
                     int randomStartVertex = random.nextInt(size);
-                    Ant mrufka = mrufka(costMatrix, feromonMatrix, randomStartVertex, wordSize);
+                    Ant mrufka = mrufka(costMatrix, feromonMatrix, randomStartVertex, wordSize, LENGTH_OF_SEQ);
 
                     ants.add(mrufka);
                 }
@@ -41,13 +62,29 @@ public class Main {
                     maxAnt.setLength(ant.getLength());
                 }
 
-                updateFeromon(sortedAntsByLength, feromonMatrix, costMatrix);
+                updateFeromon(sortedAntsByLength, feromonMatrix, costMatrix, WORDS_NUMBER);
                 ants.clear();
             }
-            System.out.println("Najlepsza mrufka: " + maxAnt);
-            drawWords(maxAnt.getHistory(), costMatrix, strings);
+            //System.out.println("Najlepsza mrufka: " + maxAnt);
+            //drawWords(maxAnt.getHistory(), costMatrix, strings);
 
+            long stop=System.currentTimeMillis();
+            System.out.println("Czas wykonania (w milisekundach): "+(stop-startTime));
+
+            long timeOfAlgorythm = stop - startTime;
+
+
+            //formatowanie pliku
+            FileWriter resultFile = new FileWriter(file.getParentFile().getName(), true);
+            BufferedWriter out = new BufferedWriter(resultFile);
+            out.write("nazwa pliku: " + file.getName() + "\n");
+            out.write("time: " + String.valueOf((double)timeOfAlgorythm / 1000) + "\n");
+            out.write("długość sekwencji: " + maxAnt.getLength() + "\n");
+            out.write("liczba wyrazów: " + maxAnt.getSize() + "\n");
+            out.write("\n" + "\n");
+            out.close();
         }
+    }
 
 
     private static List<Ant> countRanking(List<Ant> ants) {
@@ -56,7 +93,7 @@ public class Main {
         return ants;
     }
 
-    private static void updateFeromon(List<Ant> ants, double[][] feromon, int[][] costMatrix) {
+    private static void updateFeromon(List<Ant> ants, double[][] feromon, int[][] costMatrix, int WORDS_NUMBER) {
 
         for(int i = 0; i < feromon.length; i++){
             for(int j = 0; j < feromon.length; j++){
@@ -66,12 +103,12 @@ public class Main {
 
         for(Ant ant : ants){
             for(int i = 0; i < ant.getSize()-1; i++){
-                feromon[ant.getHistory().get(i)][ant.getHistory().get(i+1)] *= 1.0 + (ant.getSize() / WORDS_NUMBER);
+                feromon[ant.getHistory().get(i)][ant.getHistory().get(i+1)] *= 1.0 + (ant.getSize() / (double)WORDS_NUMBER);
             }
         }
     }
 
-    private static Ant mrufka(int[][] koszt, double[][] feromon, int actualVertex, int dlugoscSlowa) {
+    private static Ant mrufka(int[][] koszt, double[][] feromon, int actualVertex, int dlugoscSlowa, int LENGTH_OF_SEQ) {
         Ant ant = new Ant();
 
         int size = feromon.length;
@@ -209,14 +246,13 @@ public class Main {
     /**
      * Function to read words from file line by line
      *
-     * @param filePath
+     * @param file
      * @return List<String>results
      */
-    private static List<String> readFromFile(String filePath) {
+    private static List<String> readFromFile(File file) {
         List<String> result = new ArrayList<>();
 
         try {
-            File file = new File(filePath);
             Scanner myReader = new Scanner(file);
 
             while (myReader.hasNextLine()) {
